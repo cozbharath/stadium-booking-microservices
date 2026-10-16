@@ -1,0 +1,11 @@
+spring:
+  ai:
+    openai:
+      api-key: ${GROQ_API_KEY}
+      base-url: https://api.groq.com/openai/v1
+      chat:
+        options:
+          model: ${GROQ_MODEL:openai/gpt-oss-20b}
+          temperature: 0.1
+    model:
+      embedding: none

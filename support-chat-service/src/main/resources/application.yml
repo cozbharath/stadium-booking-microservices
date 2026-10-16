@@ -1,0 +1,31 @@
+spring:
+    application:
+        name: support-chat-service
+    config:
+        import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8071}
+    ai:
+        openai:
+            api-key: ${GROQ_API_KEY}
+            base-url: https://api.groq.com/openai/v1
+            chat:
+                options:
+                    model: ${GROQ_MODEL:openai/gpt-oss-20b}
+                    temperature: 0.1
+        model:
+            embedding: none
+
+server:
+    port: 8086
+
+eureka:
+    client:
+        service-url:
+            defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+    instance:
+        prefer-ip-address: true
+
+jwt:
+    secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-dev-only-jwt-secret-change-me}
+    expiration: 86400000
+internal:
+    token: ${INTERNAL_TOKEN:change-me-internal-token}

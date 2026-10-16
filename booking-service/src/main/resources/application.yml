@@ -1,0 +1,34 @@
+spring:
+    application:
+        name: booking-service
+    config:
+        import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8071}
+    datasource:
+        url: ${DB_URL:jdbc:mysql://localhost:3306/booking_db?createDatabaseIfNotExist=true}
+        username: root
+        password: ${DB_PASSWORD:}
+        hikari:
+            # lets a request that waited for the seat lock see rows the other request just committed
+            transaction-isolation: TRANSACTION_READ_COMMITTED
+    jpa:
+        hibernate:
+            ddl-auto: update
+        show-sql: false
+    flyway:
+        enabled: false
+
+server:
+    port: 8083
+
+eureka:
+    client:
+        service-url:
+            defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+    instance:
+        prefer-ip-address: true
+
+jwt:
+    secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-dev-only-jwt-secret-change-me}
+    expiration: 86400000
+internal:
+    token: ${INTERNAL_TOKEN:change-me-internal-token}

@@ -1,0 +1,260 @@
+version: "3.8"
+
+services:
+    mysql:
+        image: mysql:8.0
+        container_name: stadium-mysql
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+        ports:
+            - "3307:3306"
+        volumes:
+            - mysql-data:/var/lib/mysql
+        networks:
+            - stadium-net
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "mysqladmin",
+                    "ping",
+                    "-h",
+                    "localhost",
+                    "-uroot",
+                    "-p${DB_PASSWORD}",
+                ]
+            interval: 10s
+            timeout: 5s
+            retries: 10
+
+    discovery-server:
+        build: ./discovery-server
+        container_name: discovery-server
+        restart: unless-stopped
+        ports:
+            - "8761:8761"
+        networks:
+            - stadium-net
+
+    config-server:
+        build: ./config-server
+        container_name: config-server
+        restart: unless-stopped
+        ports:
+            - "8071:8071"
+        environment:
+            EUREKA_URL: http://discovery-server:8761/eureka
+        depends_on:
+            - discovery-server
+        networks:
+            - stadium-net
+
+    api-gateway:
+        build: ./api-gateway
+        container_name: api-gateway
+        restart: unless-stopped
+        ports:
+            - "8888:8888"
+        environment:
+            EUREKA_URL: http://discovery-server:8761/eureka
+            CONFIG_SERVER_URL: http://config-server:8071
+            JWT_SECRET: ${JWT_SECRET}
+            INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+        depends_on:
+            - discovery-server
+            - config-server
+        networks:
+            - stadium-net
+
+    admin-service:
+        build: ./admin-service
+        container_name: admin-service
+        restart: unless-stopped
+        ports:
+            - "8092:8092"
+        environment:
+            EUREKA_URL: http://discovery-server:8761/eureka
+            CONFIG_SERVER_URL: http://config-server:8071
+            JWT_SECRET: ${JWT_SECRET}
+            INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+        depends_on:
+            - discovery-server
+            - config-server
+        networks:
+            - stadium-net
+
+    auth-service:
+        build: ./auth-service
+        container_name: auth-service
+        restart: unless-stopped
+        ports:
+            - "8081:8081"
+        environment:
+            DB_URL: jdbc:mysql://mysql:3306/auth_db?createDatabaseIfNotExist=true
+            DB_USERNAME: root
+            DB_PASSWORD: ${DB_PASSWORD}
+            EUREKA_URL: http://discovery-server:8761/eureka
+            CONFIG_SERVER_URL: http://config-server:8071
+            JWT_SECRET: ${JWT_SECRET}
+            INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+        depends_on:
+            mysql:
+                condition: service_healthy
+            discovery-server:
+                condition: service_started
+        networks:
+            - stadium-net
+
+    venue-service:
+        build: ./venue-service
+        container_name: venue-service
+        restart: unless-stopped
+        ports:
+            - "8091:8091"
+        environment:
+            DB_URL: jdbc:mysql://mysql:3306/venue_db?createDatabaseIfNotExist=true
+            DB_USERNAME: root
+            DB_PASSWORD: ${DB_PASSWORD}
+            EUREKA_URL: http://discovery-server:8761/eureka
+            CONFIG_SERVER_URL: http://config-server:8071
+            JWT_SECRET: ${JWT_SECRET}
+            INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+        depends_on:
+            mysql:
+                condition: service_healthy
+            discovery-server:
+                condition: service_started
+        networks:
+            - stadium-net
+
+    event-service:
+        build: ./event-service
+        container_name: event-service
+        restart: unless-stopped
+        ports:
+            - "8082:8082"
+        environment:
+            DB_URL: jdbc:mysql://mysql:3306/event_db?createDatabaseIfNotExist=true
+            DB_USERNAME: root
+            DB_PASSWORD: ${DB_PASSWORD}
+            EUREKA_URL: http://discovery-server:8761/eureka
+            CONFIG_SERVER_URL: http://config-server:8071
+            JWT_SECRET: ${JWT_SECRET}
+            INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+        depends_on:
+            mysql:
+                condition: service_healthy
+            discovery-server:
+                condition: service_started
+        networks:
+            - stadium-net
+
+    booking-service:
+        build: ./booking-service
+        container_name: booking-service
+        restart: unless-stopped
+        ports:
+            - "8083:8083"
+        environment:
+            DB_URL: jdbc:mysql://mysql:3306/booking_db?createDatabaseIfNotExist=true
+            DB_USERNAME: root
+            DB_PASSWORD: ${DB_PASSWORD}
+            EUREKA_URL: http://discovery-server:8761/eureka
+            CONFIG_SERVER_URL: http://config-server:8071
+            JWT_SECRET: ${JWT_SECRET}
+            INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+        depends_on:
+            mysql:
+                condition: service_healthy
+            discovery-server:
+                condition: service_started
+        networks:
+            - stadium-net
+
+    ticket-service:
+        build: ./ticket-service
+        container_name: ticket-service
+        restart: unless-stopped
+        ports:
+            - "8085:8085"
+        environment:
+            DB_URL: jdbc:mysql://mysql:3306/ticket_db?createDatabaseIfNotExist=true
+            DB_USERNAME: root
+            DB_PASSWORD: ${DB_PASSWORD}
+            EUREKA_URL: http://discovery-server:8761/eureka
+            CONFIG_SERVER_URL: http://config-server:8071
+            JWT_SECRET: ${JWT_SECRET}
+            INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+        depends_on:
+            mysql:
+                condition: service_healthy
+            discovery-server:
+                condition: service_started
+        networks:
+            - stadium-net
+
+    payment-service:
+        build: ./payment-service
+        container_name: payment-service
+        restart: unless-stopped
+        ports:
+            - "8084:8084"
+        environment:
+            DB_URL: jdbc:mysql://mysql:3306/payment_db?createDatabaseIfNotExist=true
+            DB_USERNAME: root
+            DB_PASSWORD: ${DB_PASSWORD}
+            EUREKA_URL: http://discovery-server:8761/eureka
+            CONFIG_SERVER_URL: http://config-server:8071
+            JWT_SECRET: ${JWT_SECRET}
+            INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+            RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+            RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+        depends_on:
+            mysql:
+                condition: service_healthy
+            discovery-server:
+                condition: service_started
+        networks:
+            - stadium-net
+
+    support-chat-service:
+        build: ./support-chat-service
+        container_name: support-chat-service
+        restart: unless-stopped
+        ports:
+            - "8086:8086"
+        environment:
+            EUREKA_URL: http://discovery-server:8761/eureka
+            CONFIG_SERVER_URL: http://config-server:8071
+            JWT_SECRET: ${JWT_SECRET}
+            INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+            GROQ_API_KEY: ${GROQ_API_KEY}
+            GROQ_MODEL: ${GROQ_MODEL}
+        depends_on:
+            - discovery-server
+        networks:
+            - stadium-net
+
+    staff-service:
+        build: ./staff-service
+        container_name: staff-service
+        restart: unless-stopped
+        ports:
+            - "8093:8093"
+        environment:
+            EUREKA_URL: http://discovery-server:8761/eureka
+            CONFIG_SERVER_URL: http://config-server:8071
+            JWT_SECRET: ${JWT_SECRET}
+            INTERNAL_TOKEN: ${INTERNAL_TOKEN}
+        depends_on:
+            - discovery-server
+        networks:
+            - stadium-net
+
+networks:
+    stadium-net:
+        driver: bridge
+
+volumes:
+    mysql-data:

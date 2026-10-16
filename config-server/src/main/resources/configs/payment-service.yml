@@ -1,0 +1,4 @@
+razorpay:
+  key:
+    id: ${RAZORPAY_KEY_ID:}
+    secret: ${DB_PASSWORD:}

@@ -1,0 +1,22 @@
+spring:
+    application:
+        name: staff-service
+    config:
+        import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8071}
+
+server:
+    port: 8093
+
+eureka:
+    client:
+        service-url:
+            defaultZone: ${EUREKA_URL:http://localhost:8761/eureka}
+    instance:
+        prefer-ip-address: true
+
+# shared secrets - set real values through environment variables / config-server
+jwt:
+    secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-dev-only-jwt-secret-change-me}
+    expiration: 86400000
+internal:
+    token: ${INTERNAL_TOKEN:change-me-internal-token}

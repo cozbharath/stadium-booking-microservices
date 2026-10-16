@@ -1,0 +1,8 @@
+# The value after the colon is only a development default.
+# Set real values with environment variables; never commit real secrets.
+jwt:
+  secret: ${JWT_SECRET:dev-only-jwt-secret-change-me-dev-only-jwt-secret-change-me}
+  expiration: 86400000
+
+internal:
+  token: ${INTERNAL_TOKEN:change-me-internal-token}
