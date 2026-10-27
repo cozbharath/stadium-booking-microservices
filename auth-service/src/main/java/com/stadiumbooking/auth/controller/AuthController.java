@@ -1,22 +1,24 @@
 package com.stadiumbooking.auth.controller;
 
-import java.util.Map;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.stadiumbooking.auth.dto.auth.request.LoginOtpRequest;
 import com.stadiumbooking.auth.dto.auth.request.LoginRequest;
-import com.stadiumbooking.auth.dto.auth.request.RegisterRequest;
+import com.stadiumbooking.auth.dto.auth.request.RegisterOtpRequest;
+import com.stadiumbooking.auth.dto.auth.request.VerifyOtpRequest;
 import com.stadiumbooking.auth.dto.auth.response.LoginResponse;
+import com.stadiumbooking.auth.dto.auth.response.OtpSentResponse;
 import com.stadiumbooking.auth.entity.User;
+import com.stadiumbooking.auth.exception.AuthFlowException;
+import com.stadiumbooking.auth.otp.OtpService;
 import com.stadiumbooking.auth.repository.UserRepository;
 import com.stadiumbooking.auth.security.JwtService;
 import com.stadiumbooking.common.enums.Role;
@@ -32,40 +34,59 @@ public class AuthController {
 
 	private final UserRepository userRepository;
 
-	private final PasswordEncoder passwordEncoder;
-
 	private final AuthenticationManager authenticationManager;
 
 	private final JwtService jwtService;
 
+	private final OtpService otpService;
+
 	// ==================================================
-	// REGISTER
+	// CUSTOMER REGISTER: step 1 (send OTP), step 2 (verify, account created, signed in)
 	// ==================================================
 
-	@PostMapping("/register")
-	public ResponseEntity<Map<String, String>> register(@Valid @RequestBody RegisterRequest request) {
+	@PostMapping("/register/request-otp")
+	public ResponseEntity<OtpSentResponse> requestRegisterOtp(@Valid @RequestBody RegisterOtpRequest request) {
 
-		if (userRepository.existsByEmail(request.getEmail())) {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Email already registered"));
-		}
+		return ResponseEntity.ok(otpService.sendRegisterOtp(request.getName(), request.getEmail(), request.getMobile()));
+	}
 
-		User user = new User();
-		user.setName(request.getName());
-		user.setEmail(request.getEmail());
-		user.setPassword(passwordEncoder.encode(request.getPassword()));
-		user.setRole(Role.CUSTOMER);
+	@PostMapping("/register/verify-otp")
+	public ResponseEntity<LoginResponse> verifyRegisterOtp(@Valid @RequestBody VerifyOtpRequest request) {
 
-		userRepository.save(user);
+		User user = otpService.verifyRegisterOtp(request.getMobile(), request.getOtp());
 
-		return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Customer registered successfully"));
+		return ResponseEntity.status(HttpStatus.CREATED).body(toLoginResponse(user));
 	}
 
 	// ==================================================
-	// LOGIN
+	// CUSTOMER LOGIN: mobile + OTP
+	// ==================================================
+
+	@PostMapping("/login/request-otp")
+	public ResponseEntity<OtpSentResponse> requestLoginOtp(@Valid @RequestBody LoginOtpRequest request) {
+
+		return ResponseEntity.ok(otpService.sendLoginOtp(request.getMobile()));
+	}
+
+	@PostMapping("/login/verify-otp")
+	public ResponseEntity<LoginResponse> verifyLoginOtp(@Valid @RequestBody VerifyOtpRequest request) {
+
+		User user = otpService.verifyLoginOtp(request.getMobile(), request.getOtp());
+
+		return ResponseEntity.ok(toLoginResponse(user));
+	}
+
+	// ==================================================
+	// ADMIN / STAFF LOGIN: email + password only
 	// ==================================================
 
 	@PostMapping("/login")
 	public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+
+		userRepository.findByEmail(request.getEmail()).filter(u -> u.getRole() == Role.CUSTOMER).ifPresent(u -> {
+			throw new AuthFlowException(HttpStatus.FORBIDDEN,
+					"Customers sign in with their mobile number and an OTP.");
+		});
 
 		Authentication authentication = authenticationManager
 				.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
@@ -74,11 +95,12 @@ public class AuthController {
 
 		User user = userRepository.findByEmail(userDetails.getEmail()).orElseThrow();
 
-		String token = jwtService.generateToken(user);
+		return ResponseEntity.ok(toLoginResponse(user));
+	}
 
-		LoginResponse response = new LoginResponse(token, user.getId(), user.getName(), user.getEmail(),
-				user.getRole());
+	private LoginResponse toLoginResponse(User user) {
 
-		return ResponseEntity.ok(response);
+		return new LoginResponse(jwtService.generateToken(user), user.getId(), user.getName(), user.getEmail(),
+				user.getRole(), user.getMobile());
 	}
 }

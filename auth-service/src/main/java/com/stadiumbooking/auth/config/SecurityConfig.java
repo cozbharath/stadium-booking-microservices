@@ -48,7 +48,7 @@ public class SecurityConfig {
 				.authenticationProvider(authenticationProvider())
 				.authorizeHttpRequests(auth -> auth.requestMatchers("/internal/**").hasRole("INTERNAL")
 						.requestMatchers("/api/auth/**").permitAll().requestMatchers(HttpMethod.GET, "/api/users/me")
-						.authenticated().requestMatchers(HttpMethod.PUT, "/api/users/me/password").hasRole("CUSTOMER")
+						.authenticated().requestMatchers(HttpMethod.PUT, "/api/users/me/password").hasAnyRole("ADMIN", "STAFF")
 						.requestMatchers("/api/users/**").hasRole("ADMIN").anyRequest().authenticated());
 
 		return http.build();

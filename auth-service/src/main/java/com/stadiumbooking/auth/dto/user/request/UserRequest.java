@@ -17,6 +17,8 @@ public class UserRequest {
 
 	private String email;
 
+	private String mobile;
+
 	private Role role;
 
 	private String password;
